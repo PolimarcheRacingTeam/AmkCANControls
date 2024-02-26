@@ -631,7 +631,7 @@ namespace error_codes
     };
 
     // Size of the error list
-    const size_t numErrors = sizeof(errorList) / sizeof(errorList[0]);
+    const size_t numErrors = sizeof(ERROR_LIST) / sizeof(ERROR_LIST[0]);
 
 }
 

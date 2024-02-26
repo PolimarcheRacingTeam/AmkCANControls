@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <stdint.h>
 #include "amkfse.h"
 #include "ERRORCODES.h"
 #include "CAN.h"
@@ -29,7 +30,7 @@ int16_t TempIGBT;
 
 // dichiarazione delle funzioni
 uint8_t *build_message(uint16_t, int16_t, int16_t, int16_t);
-bool send_message(uint8_t, const int);
+bool send_message(uint8_t [], const int);
 void print_received_message(int);
 void canCallback(int);
 void printError(error_codes::Error);
@@ -67,7 +68,12 @@ void setup()
 void loop()
 {
   // ============================INVIO CAN============================
-  uint8_t Setpoint[8] = build_message(control, target_velocity, torque_limit_positive, torque_limit_negative);
+  uint8_t Setpoint[8] = {0};
+  uint8_t *aux = build_message(control, target_velocity, torque_limit_positive, torque_limit_negative);
+  for (int i = 0; i< 8 ; i++)
+  {
+    Setpoint[i] = aux[i];
+  }
 
   // controllo se i messaggi sono stati inviati correttamente
   if (send_message(Setpoint, AMK_INVERTER_1_SETPOINTS_1) && send_message(Setpoint, AMK_INVERTER_2_SETPOINTS_1))
@@ -78,7 +84,7 @@ void loop()
   // ============================RICEZIONE CAN============================
   // parse del pacchetto
   int packetSize = CAN.parsePacket();
-  print_received_messages(packetSize);
+  print_received_message(packetSize);
 }
 
 // viene richiamata ogni qualvolta che viene ricevuto un messaggio CAN
