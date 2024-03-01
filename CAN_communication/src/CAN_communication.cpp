@@ -96,6 +96,7 @@ void loop()
 // riempie i vettori Actual1 e Actual2 con i valori ricevuti
 void canCallback(int packetSize)
 {
+  Serial.println("Received CAN packet ...");
   if (CAN.packetId() == AMK_INVERTER_1_ACTUAL_VALUES_1)
   {
     for (int i = 0; i < CAN.packetDlc(); i++)
@@ -158,7 +159,7 @@ uint8_t *build_message(uint16_t control, int16_t target_velocity, int16_t torque
 
 bool send_message(uint8_t message[8], const int INVERTER_X_SETPOINT_ADDRESS)
 {
-  Serial.print("Sending packet ... ");
+  Serial.println("Sending packet to ... " + INVERTER_X_SETPOINT_ADDRESS);
   CAN.beginPacket(INVERTER_X_SETPOINT_ADDRESS); // indirizzo di arrivo del pacchetto
   size_t bytesSent = CAN.write(message, 8);
   CAN.endPacket();
@@ -229,6 +230,9 @@ void print_received_message(int packetSize)
     }
 
     Serial.println();
+  }
+  else{
+    Serial.println("No packet received");
   }
 }
 
