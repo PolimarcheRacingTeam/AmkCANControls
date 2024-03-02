@@ -201,7 +201,7 @@ void print_received_message(int packetSize)
 
       // Lettura dati in esadecimale ad 8 bit e conversione in decimale (Da rivedere la gestione dello status)
       // Lettura actual values 1
-      Serial.printf("%d", (int *) Actual1[0]);
+      Serial.printf("%d", Actual1[0]);
       Serial.print(" ");
       ActualVelocity = Actual1[3] << 8 | Actual1[2];
       Serial.printf("%d", ActualVelocity);
@@ -248,7 +248,7 @@ void printError(error_codes::Error error)
 
 error_codes::Error validateError(uint16_t errorInfo)
 {
-  for (int i = 0; i < error_codes::numErrors; i++)
+  for (size_t i = 0; i < error_codes::numErrors; i++)
   {
     if (error_codes::ERROR_LIST[i].code == errorInfo)
       return error_codes::ERROR_LIST[i];
