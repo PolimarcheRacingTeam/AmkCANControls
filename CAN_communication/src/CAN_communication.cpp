@@ -1,17 +1,21 @@
 #include <Arduino.h>
-#include <stdint.h>
+#include <cstdint>
+#include "CAN.h"
 #include "amkfse.h"
 #include "ERRORCODES.h"
-#include "CAN.h"
+
+CANSAME5x CAN;
 
 // Variabili per l'invio dei messaggi CAN
 static uint8_t can_msg[8] = {};
-uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
+//uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
 // set dei bit di AMK_Control (0000000011100000)
-control |= AMK_DC_ON;
+/* control |= AMK_DC_ON;
 control |= AMK_DRIVER_ENABLE;
 control |= AMK_INVERTER_ON;
-control &= AMK_ERROR_SET_OFF;
+control &= AMK_ERROR_SET_OFF; */
+uint16_t control = 224;
+
 int16_t target_velocity = 0;       // AMK_TargetVelocity, Signed, 2 Byte
 int16_t torque_limit_positive = 0; // AMK_TorqueLimitPositiv, Signed, 2 Byte
 int16_t torque_limit_negative = 0; // AMK_TorqueLimitNegativ, Signed, 2 Byte
@@ -42,13 +46,14 @@ void setup()
   Serial.begin(9600);
   // while (!Serial);
   Serial.println("CAN Receiver - Transmitter");
+
   pinMode(PIN_CAN_STANDBY, OUTPUT);
   digitalWrite(PIN_CAN_STANDBY, false); // turn off STANDBY
   pinMode(PIN_CAN_BOOSTEN, OUTPUT);
   digitalWrite(PIN_CAN_BOOSTEN, true); // turn on booster
 
   // start the CAN bus at 500 kbps
-  if (!CAN.begin(500000))
+  if (!CAN.begin(500E3))
   {
     Serial.println("Starting CAN failed!");
     // se la comunicazione non avviene correttamente il led lampeggia
@@ -91,6 +96,7 @@ void loop()
 // riempie i vettori Actual1 e Actual2 con i valori ricevuti
 void canCallback(int packetSize)
 {
+  Serial.println("Received CAN packet ...");
   if (CAN.packetId() == AMK_INVERTER_1_ACTUAL_VALUES_1)
   {
     for (int i = 0; i < CAN.packetDlc(); i++)
@@ -153,9 +159,9 @@ uint8_t *build_message(uint16_t control, int16_t target_velocity, int16_t torque
 
 bool send_message(uint8_t message[8], const int INVERTER_X_SETPOINT_ADDRESS)
 {
-  Serial.print("Sending packet ... ");
+  Serial.println("Sending packet to ... " + INVERTER_X_SETPOINT_ADDRESS);
   CAN.beginPacket(INVERTER_X_SETPOINT_ADDRESS); // indirizzo di arrivo del pacchetto
-  size_t bytesSent = CAN.write(message, sizeof(message));
+  size_t bytesSent = CAN.write(message, 8);
   CAN.endPacket();
 
   // Controllo del corretto invio del pacchetto
@@ -195,7 +201,7 @@ void print_received_message(int packetSize)
 
       // Lettura dati in esadecimale ad 8 bit e conversione in decimale (Da rivedere la gestione dello status)
       // Lettura actual values 1
-      Serial.printf("%d", (int *)Actual1[0]);
+      Serial.printf("%d", Actual1[0]);
       Serial.print(" ");
       ActualVelocity = Actual1[3] << 8 | Actual1[2];
       Serial.printf("%d", ActualVelocity);
@@ -225,6 +231,9 @@ void print_received_message(int packetSize)
 
     Serial.println();
   }
+  else{
+    Serial.println("No packet received");
+  }
 }
 
 void printError(error_codes::Error error)
@@ -239,7 +248,7 @@ void printError(error_codes::Error error)
 
 error_codes::Error validateError(uint16_t errorInfo)
 {
-  for (int i = 0; i < error_codes::numErrors; i++)
+  for (size_t i = 0; i < error_codes::numErrors; i++)
   {
     if (error_codes::ERROR_LIST[i].code == errorInfo)
       return error_codes::ERROR_LIST[i];
