@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include "CAN.h"
+#include <CAN.h>
+#include <CANSAME5x.h>
 #include "amkfse.h"
 #include "ERRORCODES.h"
 
@@ -66,7 +67,7 @@ void setup()
   }
 
   // ============================RICEZIONE CAN============================
-  // quando viene ricevuto un messaggio si imposta come funzione da eseguire la canCallback()
+  // quando viene ricevuto un messaggio si imposta come funzione da eseguire la receive_message()
   CAN.onReceive(receive_message);
 }
 
@@ -140,7 +141,7 @@ void receive_message(int packetSize)
   }
   else if (isActual1 == 2)
   {
-    // Lettura actaul values 2
+    // Lettura actual values 2
     TempMotor = Actual2[1] << 8 | Actual2[0];
     Serial.printf("%d", TempMotor);
     Serial.print(" ");
@@ -200,7 +201,7 @@ bool send_message(uint8_t message[8], const int INVERTER_X_SETPOINT_ADDRESS)
   }
   else
   {
-    Serial.println("error occurred");
+    Serial.println("error occurred!");
     return false;
   }
 }
