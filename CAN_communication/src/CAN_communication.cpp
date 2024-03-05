@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <cstdint>
 #include "CAN.h"
 #include "amkfse.h"
 #include "ERRORCODES.h"
@@ -8,8 +7,8 @@ CANSAME5x CAN;
 
 // Variabili per l'invio dei messaggi CAN
 static uint8_t can_msg[8] = {};
-//uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
-// set dei bit di AMK_Control (0000000011100000)
+// uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
+//  set dei bit di AMK_Control (0000000011100000)
 /* control |= AMK_DC_ON;
 control |= AMK_DRIVER_ENABLE;
 control |= AMK_INVERTER_ON;
@@ -34,7 +33,7 @@ int16_t TempIGBT;
 
 // dichiarazione delle funzioni
 uint8_t *build_message(uint16_t, int16_t, int16_t, int16_t);
-bool send_message(uint8_t [], const int);
+bool send_message(uint8_t[], const int);
 void print_received_message(int);
 void receive_message(int);
 void printError(error_codes::Error);
@@ -76,7 +75,7 @@ void loop()
   // ============================INVIO CAN============================
   uint8_t Setpoint[8] = {0};
   uint8_t *aux = build_message(control, target_velocity, torque_limit_positive, torque_limit_negative);
-  for (int i = 0; i< 8 ; i++)
+  for (int i = 0; i < 8; i++)
   {
     Setpoint[i] = aux[i];
   }
@@ -128,7 +127,7 @@ void receive_message(int packetSize)
   if (isActual1 == 1)
   {
     // Lettura actual values 1
-    Serial.printf("%d", (int *)Actual1[0]);
+    Serial.printf("%d", Actual1[0]);
     Serial.print(" ");
     ActualVelocity = Actual1[3] << 8 | Actual1[2];
     Serial.printf("%d", ActualVelocity);
@@ -139,7 +138,8 @@ void receive_message(int packetSize)
     MagnetCurrent = Actual1[7] << 8 | Actual1[6];
     Serial.printf("%d", MagnetCurrent);
   }
-  else if(isActual1 == 2){
+  else if (isActual1 == 2)
+  {
     // Lettura actaul values 2
     TempMotor = Actual2[1] << 8 | Actual2[0];
     Serial.printf("%d", TempMotor);
