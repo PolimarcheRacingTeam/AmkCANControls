@@ -16,9 +16,9 @@ control |= AMK_INVERTER_ON;
 control &= AMK_ERROR_SET_OFF; */
 uint16_t control = 224;
 
-int16_t target_velocity = 0;       // AMK_TargetVelocity, Signed, 2 Byte
-int16_t torque_limit_positive = 0; // AMK_TorqueLimitPositiv, Signed, 2 Byte
-int16_t torque_limit_negative = 0; // AMK_TorqueLimitNegativ, Signed, 2 Byte
+int16_t target_velocity = 10;       // AMK_TargetVelocity, Signed, 2 Byte
+int16_t torque_limit_positive = 10; // AMK_TorqueLimitPositiv, Signed, 2 Byte
+int16_t torque_limit_negative = 10; // AMK_TorqueLimitNegativ, Signed, 2 Byte
 
 // Variabili per la ricezione dei messaggi CAN
 uint8_t Actual1[8];
