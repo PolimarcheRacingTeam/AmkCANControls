@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include <cstdint>
-#include "CAN.h"
+#include <CAN.h>
+#include <CANSAME5x.h>
 #include "amkfse.h"
 #include "ERRORCODES.h"
 
@@ -8,17 +8,17 @@ CANSAME5x CAN;
 
 // Variabili per l'invio dei messaggi CAN
 static uint8_t can_msg[8] = {};
-//uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
-// set dei bit di AMK_Control (0000000011100000)
+// uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
+//  set dei bit di AMK_Control (0000000011100000)
 /* control |= AMK_DC_ON;
-control |= AMK_DRIVER_ENABLE;
+control |= AMK_ENABLE;
 control |= AMK_INVERTER_ON;
 control &= AMK_ERROR_SET_OFF; */
 uint16_t control = 224;
 
-int16_t target_velocity = 0;       // AMK_TargetVelocity, Signed, 2 Byte
-int16_t torque_limit_positive = 0; // AMK_TorqueLimitPositiv, Signed, 2 Byte
-int16_t torque_limit_negative = 0; // AMK_TorqueLimitNegativ, Signed, 2 Byte
+int16_t target_velocity = 45;       // AMK_TargetVelocity, Signed, 2 Byte
+int16_t torque_limit_positive = 3; // AMK_TorqueLimitPositiv, Signed, 2 Byte
+int16_t torque_limit_negative = 3; // AMK_TorqueLimitNegativ, Signed, 2 Byte
 
 // Variabili per la ricezione dei messaggi CAN
 uint8_t Actual1[8];
@@ -34,9 +34,9 @@ int16_t TempIGBT;
 
 // dichiarazione delle funzioni
 uint8_t *build_message(uint16_t, int16_t, int16_t, int16_t);
-bool send_message(uint8_t [], const int);
+bool send_message(uint8_t[], const int);
 void print_received_message(int);
-void canCallback(int);
+void receive_message(int);
 void printError(error_codes::Error);
 error_codes::Error validateError(uint16_t);
 
@@ -60,71 +60,103 @@ void setup()
     while (1)
     {
       digitalWrite(LED_BUILTIN, HIGH);
-      delay(100);
+      delay(200);
       digitalWrite(LED_BUILTIN, LOW);
-      delay(100);
+      delay(200);
     }
   }
 
-  // quando viene ricevuto un messaggio si imposta come funzione da eseguire la canCallback()
-  CAN.onReceive(canCallback);
+  // ============================RICEZIONE CAN============================
+  // quando viene ricevuto un messaggio si imposta come funzione da eseguire la receive_message()
+  CAN.onReceive(receive_message);
 }
 
 void loop()
 {
+  
   // ============================INVIO CAN============================
   uint8_t Setpoint[8] = {0};
   uint8_t *aux = build_message(control, target_velocity, torque_limit_positive, torque_limit_negative);
-  for (int i = 0; i< 8 ; i++)
+  for (int i = 0; i < 8; i++)
   {
     Setpoint[i] = aux[i];
   }
 
   // controllo se i messaggi sono stati inviati correttamente
   if (send_message(Setpoint, AMK_INVERTER_1_SETPOINTS_1) && send_message(Setpoint, AMK_INVERTER_2_SETPOINTS_1))
-    Serial.println("Done");
+    Serial.println("DonE SENDING!");
   else
     Serial.println("Error occurred while sending");
-
-  // ============================RICEZIONE CAN============================
-  // parse del pacchetto
-  int packetSize = CAN.parsePacket();
-  print_received_message(packetSize);
 }
 
 // viene richiamata ogni qualvolta che viene ricevuto un messaggio CAN
-// riempie i vettori Actual1 e Actual2 con i valori ricevuti
-void canCallback(int packetSize)
+void receive_message(int packetSize)
 {
   Serial.println("Received CAN packet ...");
-  if (CAN.packetId() == AMK_INVERTER_1_ACTUAL_VALUES_1)
+  long packet_ID = CAN.packetId();
+  int isActual1 = 0;
+  switch (packet_ID)
   {
-    for (int i = 0; i < CAN.packetDlc(); i++)
-    {
-      Actual1[i] = CAN.read();
-    }
+  case AMK_INVERTER_1_ACTUAL_VALUES_1:
+    Serial.print(" Actual Values 1 received from node 1 " + (int)AMK_INVERTER_1_NODE_ADDRESS);
+    isActual1 = 1;
+    break;
+  case AMK_INVERTER_1_ACTUAL_VALUES_2:
+    Serial.print("Actual Values 2 received from node 1 " + (int)AMK_INVERTER_2_NODE_ADDRESS);
+    isActual1 = 2;
+    break;
+  case AMK_INVERTER_2_ACTUAL_VALUES_1:
+    Serial.print(" Actual Values 1 received from node 2" + (int)AMK_INVERTER_2_NODE_ADDRESS);
+    isActual1 = 1;
+    break;
+  case AMK_INVERTER_2_ACTUAL_VALUES_2:
+    Serial.print("Actual Values 2 received from node 2 "+ (int)AMK_INVERTER_2_NODE_ADDRESS);
+    isActual1 = 2;
+    break;
+  default:
+    Serial.println("Unknown packet ID");
+    break;
   }
-  else if (CAN.packetId() == AMK_INVERTER_1_ACTUAL_VALUES_2)
+
+  int i = 0;
+  while (CAN.available())
   {
-    for (int i = 0; i < CAN.packetDlc(); i++)
-    {
-      Actual2[i] = CAN.read();
-    }
+    Actual1[i] = CAN.read();
+    i++;
   }
-  else if (CAN.packetId() == AMK_INVERTER_2_ACTUAL_VALUES_1)
+
+  Serial.print("control=  ");
+  if (isActual1 == 1)
   {
-    for (int i = 0; i < CAN.packetDlc(); i++)
-    {
-      Actual1[i] = CAN.read();
-    }
+    // Lettura actual values 1
+    Serial.printf("%d velocita= ", Actual1[0]);
+    Serial.print(" ");
+    ActualVelocity = Actual1[3] << 8 | Actual1[2];
+    Serial.printf("%d torque current =", ActualVelocity);
+    Serial.print(" ");
+    TorqueCurrent = Actual1[5] << 8 | Actual1[4];
+    Serial.printf("%d magnet current= ", TorqueCurrent);
+    Serial.print("  ");
+    MagnetCurrent = Actual1[7] << 8 | Actual1[6];
+    Serial.printf("%d ", MagnetCurrent);
+    Serial.printf("");
   }
-  else if (CAN.packetId() == AMK_INVERTER_2_ACTUAL_VALUES_2)
+  else if (isActual1 == 2)
   {
-    for (int i = 0; i < CAN.packetDlc(); i++)
-    {
-      Actual2[i] = CAN.read();
-    }
+    // Lettura actual values 2
+    TempMotor = Actual2[1] << 8 | Actual2[0];
+    Serial.printf("%d temperaturaMot=", TempMotor);
+    Serial.print(" ");
+    TempInverter = Actual2[3] << 8 | Actual2[2];
+    Serial.printf("%d tempInv =", TempInverter);
+    Serial.print(" ");
+    ErrorInfo = Actual2[5] << 8 | Actual2[4];
+    Serial.printf("%d error=", ErrorInfo);
+    Serial.print(" ");
+    TempIGBT = Actual2[7] << 8 | Actual2[6];
+    Serial.printf("%d IGBT =", TempIGBT);
   }
+  Serial.println();
 
 #ifdef DEBUG_CAN
   Serial.printf("ID=%x\tDLC=%d\t", CAN.packetId(), CAN.packetDlc());
@@ -171,91 +203,7 @@ bool send_message(uint8_t message[8], const int INVERTER_X_SETPOINT_ADDRESS)
   }
   else
   {
+    Serial.println("error occurred!");
     return false;
-    Serial.println("error occurred");
   }
-}
-
-void print_received_message(int packetSize)
-{
-  if (packetSize)
-  {
-    // pacchetto ricevuto
-    Serial.print("Received ");
-    Serial.print("packet with id 0x");
-    Serial.print(CAN.packetId(), HEX); // scrittura dell'id del pacchetto in esadecimale
-    if (CAN.packetRtr())
-    { // controllo che il pacchetto non sia vuoto
-      Serial.print(" and requested length ");
-      Serial.println(CAN.packetDlc());
-    }
-    else
-    { // il pacchetto non è vuoto
-      Serial.print(" and length ");
-      Serial.println(packetSize); // scrittura grandezza pacchetto
-      Serial.printf("ID=%x\tDLC=%d\t", CAN.packetId(), CAN.packetDlc());
-      for (int i = 0; i < CAN.packetDlc(); i++)
-      {
-        Serial.printf("0x%02X ", Actual1[i]); // scrittura dati del pacchetto
-      }
-
-      // Lettura dati in esadecimale ad 8 bit e conversione in decimale (Da rivedere la gestione dello status)
-      // Lettura actual values 1
-      Serial.printf("%d", (int *) Actual1[0]);
-      Serial.print(" ");
-      ActualVelocity = Actual1[3] << 8 | Actual1[2];
-      Serial.printf("%d", ActualVelocity);
-      Serial.print(" ");
-      TorqueCurrent = Actual1[5] << 8 | Actual1[4];
-      Serial.printf("%d", TorqueCurrent);
-      Serial.print(" ");
-      MagnetCurrent = Actual1[7] << 8 | Actual1[6];
-      Serial.printf("%d", MagnetCurrent);
-
-      // Lettura actual values 2
-      TempMotor = Actual2[1] << 8 | Actual2[0];
-      Serial.printf("%d", TempMotor);
-      Serial.print(" ");
-      TempInverter = Actual2[3] << 8 | Actual2[2];
-      Serial.printf("%d", TempInverter);
-      Serial.print(" ");
-      ErrorInfo = Actual2[5] << 8 | Actual2[4];
-
-      Serial.printf("%d", ErrorInfo);
-      error_codes::Error errorDetected = validateError(ErrorInfo);
-      printError(errorDetected);
-
-      TempIGBT = Actual2[7] << 8 | Actual2[6];
-      Serial.printf("%d", TempIGBT);
-    }
-
-    Serial.println();
-  }
-  else{
-    Serial.println("No packet received");
-  }
-}
-
-void printError(error_codes::Error error)
-{
-  Serial.print("Code: ");
-  Serial.print(error.code);
-  Serial.print(", Topic: ");
-  Serial.print(error.topic);
-  Serial.print(", Name: ");
-  Serial.println(error.name);
-}
-
-error_codes::Error validateError(uint16_t errorInfo)
-{
-  for (int i = 0; i < error_codes::numErrors; i++)
-  {
-    if (error_codes::ERROR_LIST[i].code == errorInfo)
-      return error_codes::ERROR_LIST[i];
-    // questo if vale solo nel caso in cui la lista sia crescente
-    // in alcuni casi riduce le iterazioni
-    if (error_codes::ERROR_LIST[i].code > errorInfo)
-      break;
-  }
-  return {errorInfo, "Unknown", "Unknown"};
 }
