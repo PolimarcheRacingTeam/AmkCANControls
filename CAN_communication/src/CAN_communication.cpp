@@ -18,15 +18,14 @@ uint16_t control = 224;
 
 int16_t target_velocity = 45;       // AMK_TargetVelocity, Signed, 2 Byte
 int16_t torque_limit_positive = 3; // AMK_TorqueLimitPositiv, Signed, 2 Byte
-int16_t torque_limit_negative = 3; // AMK_TorqueLimitNegativ, Signed, 2 Byte
+int16_t torque_limit_negative = -3; // AMK_TorqueLimitNegativ, Signed, 2 Byte
 
 // Variabili per la ricezione dei messaggi CAN
-uint8_t Actual1[8];
-uint8_t Actual2[8];
-uint16_t status;
-uint16_t ActualVelocity;
-uint16_t TorqueCurrent;
-uint16_t MagnetCurrent;
+uint8_t Actual[8] = {};
+uint16_t Status;
+int16_t ActualVelocity;
+int16_t TorqueCurrent;
+int16_t MagnetCurrent;
 int16_t TempMotor;
 int16_t TempInverter;
 uint16_t ErrorInfo;
@@ -84,7 +83,7 @@ void loop()
 
   // controllo se i messaggi sono stati inviati correttamente
   if (send_message(Setpoint, AMK_INVERTER_1_SETPOINTS_1) && send_message(Setpoint, AMK_INVERTER_2_SETPOINTS_1))
-    Serial.println("DonE SENDING!");
+    Serial.println("DONE SENDING!");
   else
     Serial.println("Error occurred while sending");
 }
@@ -94,24 +93,25 @@ void receive_message(int packetSize)
 {
   Serial.println("Received CAN packet ...");
   long packet_ID = CAN.packetId();
-  int isActual1 = 0;
+  bool isActual1 = false;
+  bool isActual2 = false;
   switch (packet_ID)
   {
   case AMK_INVERTER_1_ACTUAL_VALUES_1:
-    Serial.print(" Actual Values 1 received from node 1 " + (int)AMK_INVERTER_1_NODE_ADDRESS);
-    isActual1 = 1;
+    Serial.print("Actual Values 1 received from node 1 " + (int)AMK_INVERTER_1_NODE_ADDRESS);
+    isActual1 = true;
     break;
   case AMK_INVERTER_1_ACTUAL_VALUES_2:
     Serial.print("Actual Values 2 received from node 1 " + (int)AMK_INVERTER_2_NODE_ADDRESS);
-    isActual1 = 2;
+    isActual2 = true;
     break;
   case AMK_INVERTER_2_ACTUAL_VALUES_1:
-    Serial.print(" Actual Values 1 received from node 2" + (int)AMK_INVERTER_2_NODE_ADDRESS);
-    isActual1 = 1;
+    Serial.print("Actual Values 1 received from node 2" + (int)AMK_INVERTER_2_NODE_ADDRESS);
+    isActual1 = true;
     break;
   case AMK_INVERTER_2_ACTUAL_VALUES_2:
     Serial.print("Actual Values 2 received from node 2 "+ (int)AMK_INVERTER_2_NODE_ADDRESS);
-    isActual1 = 2;
+    isActual2 = false;
     break;
   default:
     Serial.println("Unknown packet ID");
@@ -121,42 +121,35 @@ void receive_message(int packetSize)
   int i = 0;
   while (CAN.available())
   {
-    Actual1[i] = CAN.read();
+    Actual[i] = CAN.read();
     i++;
   }
 
-  Serial.print("control=  ");
-  if (isActual1 == 1)
+  if (isActual1)
   {
-    // Lettura actual values 1
-    Serial.printf("%d velocita= ", Actual1[0]);
-    Serial.print(" ");
-    ActualVelocity = Actual1[3] << 8 | Actual1[2];
-    Serial.printf("%d torque current =", ActualVelocity);
-    Serial.print(" ");
-    TorqueCurrent = Actual1[5] << 8 | Actual1[4];
-    Serial.printf("%d magnet current= ", TorqueCurrent);
-    Serial.print("  ");
-    MagnetCurrent = Actual1[7] << 8 | Actual1[6];
-    Serial.printf("%d ", MagnetCurrent);
-    Serial.printf("");
+    // lettura Actual Values 1
+    Status = (Actual[0] << 8) | Actual[1];
+    Serial.println("AMK_Status: " + Status);
+    ActualVelocity = (Actual[2] << 8) | Actual[3];
+    Serial.println("AMK_ActualVelocity: " + ActualVelocity);
+    TorqueCurrent = (Actual[4] << 8) | Actual[5];
+    Serial.println("AMK_TorqueCurrent: " + TorqueCurrent);
+    MagnetCurrent = (Actual[6] << 8) | Actual[7];
+    Serial.println("AMK_MagnetCurrent: " + MagnetCurrent);
   }
-  else if (isActual1 == 2)
+  else if (isActual2)
   {
-    // Lettura actual values 2
-    TempMotor = Actual2[1] << 8 | Actual2[0];
-    Serial.printf("%d temperaturaMot=", TempMotor);
-    Serial.print(" ");
-    TempInverter = Actual2[3] << 8 | Actual2[2];
-    Serial.printf("%d tempInv =", TempInverter);
-    Serial.print(" ");
-    ErrorInfo = Actual2[5] << 8 | Actual2[4];
-    Serial.printf("%d error=", ErrorInfo);
-    Serial.print(" ");
-    TempIGBT = Actual2[7] << 8 | Actual2[6];
-    Serial.printf("%d IGBT =", TempIGBT);
+    //Lettura Actual Values 2
+    TempMotor = (Actual[0] << 8) | Actual[1];
+    Serial.println("AMK_TempMotor: " + TempMotor);
+    TempInverter = (Actual[2] << 8) | Actual[3];
+    Serial.println("AMK_TempInverter: " + TempInverter);
+    ErrorInfo = (Actual[4] << 8) | Actual[5];
+    Serial.println("AMK_ErrorInfo: " + ErrorInfo);
+    TempIGBT = (Actual[6] << 8) | Actual[7];
+    Serial.println("AMK_TempIGBT: " + TempIGBT);
   }
-  Serial.println();
+  Serial.println("READING DONE!");
 
 #ifdef DEBUG_CAN
   Serial.printf("ID=%x\tDLC=%d\t", CAN.packetId(), CAN.packetDlc());
@@ -172,6 +165,13 @@ uint8_t *build_message(uint16_t control, int16_t target_velocity, int16_t torque
 {
   // (Formato Little Endian)
   // inserimento dei Byte di AMK_Control all'interno del messaggio che verrà spedito via CAN
+
+  /*
+  es.
+  control = 6000 = 00010111 01110000
+  can_msg[1] = 00010111 = 23
+  can_msg[0] = 01110000 = 28672
+  */
   can_msg[1] = (control >> 8) & 0xFF;
   can_msg[0] = control & 0xFF;
 
