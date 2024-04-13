@@ -6,30 +6,25 @@
 
 CANSAME5x CAN;
 
-// Variabili per l'invio dei messaggi CAN
-static uint8_t can_msg[8] = {};
-// uint16_t control = SET_CONTROL; // AMK_Control, Unsigned, 2 Byte
-//  set dei bit di AMK_Control (0000000011100000)
-/* control |= AMK_DC_ON;
-control |= AMK_ENABLE;
-control |= AMK_INVERTER_ON;
-control &= AMK_ERROR_SET_OFF; */
-uint16_t control = 224;
-
+static uint8_t can_msg[8] = {}; // vettore per immagazzinare i setpoint
+// AMK Setpoints 1
+uint16_t control = SET_NULL; // AMK_Control, Unsigned, 2 Byte
 int16_t target_velocity = 45;       // AMK_TargetVelocity, Signed, 2 Byte
 int16_t torque_limit_positive = 3; // AMK_TorqueLimitPositiv, Signed, 2 Byte
 int16_t torque_limit_negative = -3; // AMK_TorqueLimitNegativ, Signed, 2 Byte
 
 // Variabili per la ricezione dei messaggi CAN
-uint8_t Actual[8] = {};
-uint16_t Status;
-int16_t ActualVelocity;
-int16_t TorqueCurrent;
-int16_t MagnetCurrent;
-int16_t TempMotor;
-int16_t TempInverter;
-uint16_t ErrorInfo;
-int16_t TempIGBT;
+uint8_t Actual[8] = {}; // vettore per immagazzinare i messaggi Actual Values 1 o 2
+//  AMK Actual Values 1
+uint16_t Status;  // AMK_Status
+int16_t ActualVelocity; //  AMK_ActualVelocity
+int16_t TorqueCurrent;  //  AMK_TorqueCurrent
+int16_t MagnetCurrent;  //  AMK_MagnetCurrent
+// AMK Actual Values 2
+int16_t TempMotor;  // AMK_TempMotor
+int16_t TempInverter; //  AMK_TempInverter
+uint16_t ErrorInfo; //  AMK_ErrorInfo
+int16_t TempIGBT; //  AMK_TempIGBT
 
 // dichiarazione delle funzioni
 uint8_t *build_message(uint16_t, int16_t, int16_t, int16_t);
@@ -41,6 +36,11 @@ error_codes::Error validateError(uint16_t);
 
 void setup()
 {
+  //  set dei bit di AMK_Control (0000000011100000)
+  control |= AMK_DC_ON;
+  control |= AMK_DRIVER_ENABLE;
+  control |= AMK_INVERTER_ON;
+  control &= AMK_ERROR_SET_OFF;
   // ============================AVVIO DELLA COMUNICAZIONE============================
   Serial.begin(9600);
   // while (!Serial);
