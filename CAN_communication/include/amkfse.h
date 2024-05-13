@@ -45,4 +45,7 @@
 #define AMK_ERROR_SET_ON					(1 << 4)			// xxx1xxxx Remove error
 #define AMK_ERROR_SET_OFF                   (~(1 << 4))         // xxx0xxxx
 
+/*PARAMS*/
+#define ID110                               107
+
 #endif /* INC_AMKFSE_H_ */

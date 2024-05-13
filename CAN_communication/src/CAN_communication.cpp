@@ -83,7 +83,7 @@ void loop()
 
   // controllo se i messaggi sono stati inviati correttamente
   if (send_message(Setpoint, AMK_INVERTER_1_SETPOINTS_1) && send_message(Setpoint, AMK_INVERTER_2_SETPOINTS_1))
-    Serial.printf("Done Sendind!\n");
+    Serial.printf("Done Sending!\n");
   else
     Serial.printf("Error occurred while sending\n");
 }
@@ -133,21 +133,21 @@ void receive_message(int packetSize)
     ActualVelocity = (Actual[3] << 8) | Actual[2];
     Serial.printf("AMK_ActualVelocity: %d\n", ActualVelocity);
     TorqueCurrent = (Actual[5] << 8) | Actual[4];
-    Serial.printf("AMK_TorqueCurrent: %d\n", TorqueCurrent);
+    Serial.printf("AMK_TorqueCurrent: %f\n", (float) ((float) (ID110*TorqueCurrent) / 16384));
     MagnetCurrent = (Actual[7] << 8) | Actual[6];
-    Serial.printf("AMK_MagnetCurrent: %d\n", MagnetCurrent);
+    Serial.printf("AMK_MagnetCurrent: %f\n", (float) ((float) (ID110*MagnetCurrent) / 16384));
   }
   else if (isActual2)
   {
     //Lettura Actual Values 2
     TempMotor = (Actual[1] << 8) | Actual[0];
-    Serial.printf("AMK_TempMotor: %d\n",TempMotor);
+    Serial.printf("AMK_TempMotor: %f\n",  (float) TempMotor*0.1);
     TempInverter = (Actual[3] << 8) | Actual[2];
-    Serial.printf("AMK_TempInverter: %d\n", TempInverter);
+    Serial.printf("AMK_TempInverter: %f\n", (float) TempInverter*0.1);
     ErrorInfo = (Actual[5] << 8) | Actual[4];
     Serial.printf("AMK_ErrorInfo: %d\n", ErrorInfo);
     TempIGBT = (Actual[7] << 8) | Actual[6];
-    Serial.printf("AMK_TempIGBT: %d\n", TempIGBT);
+    Serial.printf("AMK_TempIGBT: %f\n", (float) TempIGBT*0.1);
   }
   Serial.printf("READING DONE!\n");
 
@@ -191,7 +191,7 @@ uint8_t *build_message(uint16_t control, int16_t target_velocity, int16_t torque
 
 bool send_message(uint8_t message[8], const int INVERTER_X_SETPOINT_ADDRESS)
 {
-  Serial.printf("Sending packet to ... %d",  INVERTER_X_SETPOINT_ADDRESS);
+  Serial.printf("Sending packet to ... 0x%X\n",  INVERTER_X_SETPOINT_ADDRESS);
   CAN.beginPacket(INVERTER_X_SETPOINT_ADDRESS); // indirizzo di arrivo del pacchetto
   size_t bytesSent = CAN.write(message, 8);
   CAN.endPacket();
