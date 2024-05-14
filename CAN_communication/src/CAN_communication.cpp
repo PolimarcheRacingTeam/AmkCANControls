@@ -40,7 +40,7 @@ void setup()
   control |= AMK_DC_ON;
   control |= AMK_DRIVER_ENABLE;
   control |= AMK_INVERTER_ON;
-  control &= AMK_ERROR_SET_OFF;
+  control &= AMK_ERROR_SET_ON;
   // ============================AVVIO DELLA COMUNICAZIONE============================
   Serial.begin(9600);
   // while (!Serial);
