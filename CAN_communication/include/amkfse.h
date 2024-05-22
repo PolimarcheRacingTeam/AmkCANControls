@@ -39,11 +39,11 @@
 
 /*AMK_CONTROL*/
 #define SET_NULL 						    0x0
-#define AMK_INVERTER_ON         			(1 << 7)     		// 1xxxxxxx Controller enable
-#define AMK_DC_ON							(1 << 6)			// x1xxxxxx High Voltage activation
-#define AMK_DRIVER_ENABLE					(1 << 5)			// xx1xxxxx Driver Enable
-#define AMK_ERROR_SET_ON					(1 << 4)			// xxx1xxxx Remove error
-#define AMK_ERROR_SET_OFF                   (~(1 << 4))         // xxx0xxxx
+#define AMK_INVERTER_ON         			(1 << 8)     		// 1xxxxxxx Controller enable
+#define AMK_DC_ON							(1 << 9)			// x1xxxxxx High Voltage activation
+#define AMK_DRIVER_ENABLE					(1 << 10)			// xx1xxxxx Driver Enable
+#define AMK_ERROR_SET_ON					(1 << 11)			// xxx1xxxx Remove error
+#define AMK_ERROR_SET_OFF                   (~(1 << 11))         // xxx0xxxx
 
 /*PARAMS*/
 #define ID110                               107

@@ -36,11 +36,11 @@ void receive_message(int);
 
 void setup()
 {
-  //  set dei bit di AMK_Control (0000000011100000)
+  //  set dei bit di AMK_Control (0000011100000000)
   control |= AMK_DC_ON;
   control |= AMK_DRIVER_ENABLE;
   control |= AMK_INVERTER_ON;
-  control &= AMK_ERROR_SET_ON;
+  control |= AMK_ERROR_SET_ON;
   // ============================AVVIO DELLA COMUNICAZIONE============================
   Serial.begin(9600);
   // while (!Serial);
@@ -71,10 +71,11 @@ void setup()
 }
 
 void loop()
-{
-  
+{ 
   // ============================INVIO CAN============================
   uint8_t Setpoint[8] = {0};
+  // genera un numero random tra 1 e 100 e lo assegna a target_velocity
+  target_velocity = rand() % 100 + 1;
   uint8_t *aux = build_message(control, target_velocity, torque_limit_positive, torque_limit_negative);
   for (int i = 0; i < 8; i++)
   {
@@ -98,19 +99,19 @@ void receive_message(int packetSize)
   switch (packet_ID)
   {
   case AMK_INVERTER_1_ACTUAL_VALUES_1:
-    Serial.printf("Actual Values 1 received from node 1: %d\n", (int)AMK_INVERTER_1_NODE_ADDRESS);
+    Serial.printf("Actual Values 1 received from node: %d\n", (int)AMK_INVERTER_1_NODE_ADDRESS);
     isActual1 = true;
     break;
   case AMK_INVERTER_1_ACTUAL_VALUES_2:
-    Serial.printf("Actual Values 2 received from node 1: %d\n ", (int)AMK_INVERTER_2_NODE_ADDRESS);
+    Serial.printf("Actual Values 2 received from node: %d\n ", (int)AMK_INVERTER_2_NODE_ADDRESS);
     isActual2 = true;
     break;
   case AMK_INVERTER_2_ACTUAL_VALUES_1:
-    Serial.printf("Actual Values 1 received from node 2: %d\n", (int)AMK_INVERTER_2_NODE_ADDRESS);
+    Serial.printf("Actual Values 1 received from node: %d\n", (int)AMK_INVERTER_2_NODE_ADDRESS);
     isActual1 = true;
     break;
   case AMK_INVERTER_2_ACTUAL_VALUES_2:
-    Serial.printf("Actual Values 2 received from node 2: %d\n", (int)AMK_INVERTER_2_NODE_ADDRESS);
+    Serial.printf("Actual Values 2 received from node: %d\n", (int)AMK_INVERTER_2_NODE_ADDRESS);
     isActual2 = false;
     break;
   default:
